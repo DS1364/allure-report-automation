@@ -32,11 +32,14 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y google-chrome-stable
 
-      # Install Allure
-      - name: Install Allure
+      # Install Allure CLI manually
+      - name: Install Allure CLI
         run: |
-          sudo apt-get update
-          sudo apt-get install -y allure
+          ALLURE_VERSION=2.30.0  # Use the latest stable version or your preferred version
+          wget https://repo.maven.apache.org/maven2/io/qameta/allure/allure-commandline/$ALLURE_VERSION/allure-commandline-$ALLURE_VERSION.zip
+          unzip allure-commandline-$ALLURE_VERSION.zip
+          sudo mv allure-$ALLURE_VERSION /opt/allure
+          echo "/opt/allure/bin" >> $GITHUB_PATH  # Add Allure to PATH
 
       # Run tests (continue on error to generate report)
       - name: Run tests
@@ -48,7 +51,7 @@ jobs:
       - name: Generate Allure report
         if: always()
         run: |
-          allure generate ./allure-results -o ./allure-report --clean
+          /opt/allure/bin/allure generate ./allure-results -o ./allure-report --clean
 
       # Compress the report folder into a ZIP
       - name: Compress Allure report
