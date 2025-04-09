@@ -13,7 +13,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 
 # Fixture to set up and tear down the WebDriver
-@pytest.fixture(scope="function")  # Changed to "function" scope for isolation
+@pytest.fixture(scope="function")
 def setup():
     chrome_options = Options()
     # Use a temporary directory for Chrome user data to avoid conflicts
@@ -22,25 +22,31 @@ def setup():
     chrome_options.add_argument("--no-sandbox")  # Required for CI environments
     chrome_options.add_argument("--disable-dev-shm-usage")  # Avoid shared memory issues in CI
     chrome_options.add_argument("--headless")  # Run in headless mode for CI (optional)
+    chrome_options.add_argument("--disable-gpu")  # Helps with headless stability
+    chrome_options.add_argument("--window-size=1920,1080")  # Ensure proper rendering
     
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
     wait = WebDriverWait(driver, 40)
     yield driver, wait
     driver.quit()
-    # Optionally clean up temp_dir if needed (tempfile cleans it up automatically)
 
 # Step 1: Open the Website
 @allure.step("Open the website")
 def open_website(driver, wait):
     driver.get("https://dfperformance.azurewebsites.net/")
     driver.maximize_window()
+    # Wait for the title to be present or a specific element to load
+    wait.until(EC.title_contains("Datafortune Performance Accelerator-Stage"))
     allure.attach(driver.get_screenshot_as_png(), name="website_opened", attachment_type=AttachmentType.PNG)
     return "Website opened successfully"
 
 @allure.step("Verify website title")
 def verify_title(driver, expected_title="Datafortune Performance Accelerator-Stage"):
+    # Wait for the exact title to match
+    wait.until(EC.title_is(expected_title))
     actual_title = driver.title
     assert actual_title == expected_title, f"Title mismatch. Expected: {expected_title}, Got: {actual_title}"
+    allure.attach(driver.get_screenshot_as_png(), name="title_verified", attachment_type=AttachmentType.PNG)
     return f"Title verified: {actual_title}"
 
 # Step 2: Navigate to Microsoft Login
@@ -83,6 +89,7 @@ def enter_password(driver, wait, password="Production@2024"):
 # Step 4: OTP Verification
 @allure.step("Enter and verify OTP")
 def enter_otp(driver, wait, otp="123456"):
+    # Handle "Stay signed in?" prompt if it appears
     try:
         yes_button = wait.until(EC.element_to_be_clickable((By.ID, "idSIButton9")))
         yes_button.click()
@@ -110,7 +117,7 @@ def test_open_website(setup):
 
 @allure.title("Test 2: Verify website title")
 @allure.description("Checks if the website title matches the expected value.")
-@allure.severity(Severity.CRITICAL)
+@allure.severity(Severity.MAJOR)
 def test_verify_title(setup):
     driver, wait = setup
     result = verify_title(driver)
