@@ -1,6 +1,8 @@
 import time
 import pytest
 import allure
+import os
+import tempfile
 from allure_commons.types import AttachmentType, Severity
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
@@ -11,13 +13,21 @@ from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 
 # Fixture to set up and tear down the WebDriver
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")  # Changed to "function" scope for isolation
 def setup():
     chrome_options = Options()
+    # Use a temporary directory for Chrome user data to avoid conflicts
+    temp_dir = tempfile.mkdtemp()
+    chrome_options.add_argument(f"--user-data-dir={temp_dir}")
+    chrome_options.add_argument("--no-sandbox")  # Required for CI environments
+    chrome_options.add_argument("--disable-dev-shm-usage")  # Avoid shared memory issues in CI
+    chrome_options.add_argument("--headless")  # Run in headless mode for CI (optional)
+    
     driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
     wait = WebDriverWait(driver, 40)
     yield driver, wait
     driver.quit()
+    # Optionally clean up temp_dir if needed (tempfile cleans it up automatically)
 
 # Step 1: Open the Website
 @allure.step("Open the website")
@@ -63,7 +73,7 @@ def enter_password(driver, wait, password="Production@2024"):
     print("Current URL before password:", driver.current_url)
     allure.attach(driver.get_screenshot_as_png(), name="pre_password_page", attachment_type=AttachmentType.PNG)
     password_field = wait.until(EC.visibility_of_element_located((By.XPATH, "//input[@type='password']")))
-    password_field.clear()  # Added to ensure no pre-filled value
+    password_field.clear()
     password_field.send_keys(password)
     sign_in_button = wait.until(EC.element_to_be_clickable((By.ID, "idSIButton9")))
     sign_in_button.click()
@@ -73,7 +83,6 @@ def enter_password(driver, wait, password="Production@2024"):
 # Step 4: OTP Verification
 @allure.step("Enter and verify OTP")
 def enter_otp(driver, wait, otp="123456"):
-    # Handle "Stay signed in?" prompt if it appears
     try:
         yes_button = wait.until(EC.element_to_be_clickable((By.ID, "idSIButton9")))
         yes_button.click()
@@ -101,7 +110,7 @@ def test_open_website(setup):
 
 @allure.title("Test 2: Verify website title")
 @allure.description("Checks if the website title matches the expected value.")
-@allure.severity(Severity.CRITICAL)
+@allure.severity(Severity.MAJOR)
 def test_verify_title(setup):
     driver, wait = setup
     result = verify_title(driver)
@@ -149,7 +158,5 @@ def test_enter_otp(setup):
     result = enter_otp(driver, wait)
     print(result)
 
-# Main execution
 if __name__ == "__main__":
-    pytest.main(["-q", "--tb=line", "--alluredir=allure-results"])
-
+    pytest.main(["-q", "--tb=line", "--alluredir=./allure-results"])
