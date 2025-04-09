@@ -26,35 +26,39 @@ jobs:
           python -m pip install --upgrade pip
           pip install pytest allure-pytest selenium webdriver-manager
 
-      # Install Chrome (required for headless mode in CI)
+      # Install Chrome
       - name: Install Chrome
         run: |
           sudo apt-get update
           sudo apt-get install -y google-chrome-stable
 
-      # Install Allure command-line tool
+      # Install Allure
       - name: Install Allure
         run: |
           sudo apt-get update
           sudo apt-get install -y allure
 
-      # Run tests and generate Allure results
+      # Run tests (continue on error to generate report)
       - name: Run tests
+        continue-on-error: true
         run: |
           pytest test_script.py --alluredir=./allure-results
 
       # Generate Allure report
       - name: Generate Allure report
+        if: always()
         run: |
           allure generate ./allure-results -o ./allure-report --clean
 
       # Compress the report folder into a ZIP
       - name: Compress Allure report
+        if: always()
         run: |
           zip -r allure-report.zip ./allure-report
 
-      # Upload the ZIP as an artifact (optional, for debugging)
+      # Upload the ZIP as an artifact
       - name: Upload Allure report ZIP artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: allure-report-zip
@@ -62,6 +66,7 @@ jobs:
 
       # Send email with the ZIP file
       - name: Send email with report
+        if: always()
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
@@ -71,5 +76,5 @@ jobs:
           subject: "Allure Report - ZIP (Run ${{ github.run_number }})"
           to: your.manager@example.com  # Replace with your manager's email
           from: ${{ secrets.EMAIL_USERNAME }}
-          body: "Please find the attached Allure report ZIP from the latest test run. Extract and open index.html in a browser."
+          body: "Please find the attached Allure report ZIP from the latest test run. Tests may have failed. Extract and open index.html in a browser."
           attachments: allure-report.zip
