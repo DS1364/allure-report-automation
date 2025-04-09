@@ -26,37 +26,41 @@ jobs:
           python -m pip install --upgrade pip
           pip install pytest allure-pytest selenium webdriver-manager
 
-      # Install Chrome (required for headless mode in CI)
+      # Install Chrome
       - name: Install Chrome
         run: |
           sudo apt-get update
           sudo apt-get install -y google-chrome-stable
 
-      # Install Allure command-line tool
+      # Install Allure
       - name: Install Allure
         run: |
           sudo apt-get update
           sudo apt-get install -y allure
 
-      # Run tests and generate Allure results
+      # Run tests (continue on error to generate report)
       - name: Run tests
+        continue-on-error: true  # Continue even if tests fail
         run: |
           pytest test_script.py --alluredir=./allure-results
 
       # Generate Allure report
       - name: Generate Allure report
+        if: always()  # Run even if previous step fails
         run: |
           allure generate ./allure-results -o ./allure-report --clean
 
-      # Upload the report as an artifact (optional, for debugging)
+      # Upload the report as an artifact
       - name: Upload Allure report artifact
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: allure-report
           path: ./allure-report/
 
-      # Send email with the single HTML file
+      # Send email with the report
       - name: Send email with report
+        if: always()  # Ensure email is sent regardless of test outcome
         uses: dawidd6/action-send-mail@v3
         with:
           server_address: smtp.gmail.com
@@ -66,5 +70,5 @@ jobs:
           subject: "Allure Report - Single HTML (Run ${{ github.run_number }})"
           to: your.manager@example.com  # Replace with your manager's email
           from: ${{ secrets.EMAIL_USERNAME }}
-          body: "Please find the attached Allure report from the latest test run."
+          body: "Please find the attached Allure report from the latest test run. Tests may have failed."
           attachments: ./allure-report/index.html
