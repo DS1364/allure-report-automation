@@ -117,7 +117,7 @@ def test_open_website(setup):
 
 @allure.title("Test 2: Verify website title")
 @allure.description("Checks if the website title matches the expected value.")
-@allure.severity(Severity.MAJOR)
+@allure.severity(Severity.CRITICAL)
 def test_verify_title(setup):
     driver, wait = setup
     result = verify_title(driver)
