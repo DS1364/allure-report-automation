@@ -77,7 +77,7 @@ jobs:
           username: ${{ secrets.EMAIL_USERNAME }}
           password: ${{ secrets.EMAIL_PASSWORD }}
           subject: "Allure Report - ZIP (Run ${{ github.run_number }})"
-          to: your.manager@example.com  # Replace with your manager's email
+          to: riteshsavale1704@gmail.com  # Replace with your manager's email
           from: ${{ secrets.EMAIL_USERNAME }}
           body: "Please find the attached Allure report ZIP from the latest test run. Tests may have failed. Extract and open index.html in a browser."
           attachments: allure-report.zip
